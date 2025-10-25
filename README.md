@@ -1,4 +1,4 @@
-# PIC K150 usb serial traffic sniffer using QEmu from WinXP VM on debian 13
+# USB serial traffic sniffer for PIC K150 programmer and microbrn.exe
 
 Prerequisite : Install Debian 13 on a **non virtual** host
 
