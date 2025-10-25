@@ -43,11 +43,13 @@ IMPORTANT: Logout and reconnect from your desktop or ssh session or the added gr
 
 ## Starting a Windows XM VM with Qemu and sharing the K150 with it
 
-Source : https://computernewb.com/wiki/QEMU/Guests/Windows_XP
+Credits :
+- https://computernewb.com/wiki/QEMU/Guests/Windows_XP
+- https://linux-kvm.org/page/Change_cdrom
 
 Install required packages
 
-    sudo apt install qemu-system-amd64 qemu-utils qemu-system-gui --no-install-recommends -y
+    sudo apt install qemu-system-amd64 qemu-utils qemu-system-gui curl ca-certificates --no-install-recommends -y
 
     sudo usermod -a -G kvm $USER
 
@@ -62,12 +64,12 @@ Then get the images :
 
     # windows (one of them) for example from https://computernewb.com/wiki/QEMU/Guests/Windows_XP
     curl -LO https://archive.org/download/fr_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-73982_202012/fr_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-73982.iso
-    curl -LO https://computernewb.com/isos/windows/en_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-73974.iso
-    curl -LO https://computernewb.com/isos/windows/en_win_xp_pro_x64_with_sp2_vl_x13-41611.iso
+    # curl -LO https://computernewb.com/isos/windows/en_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-73974.iso
+    # curl -LO https://computernewb.com/isos/windows/en_win_xp_pro_x64_with_sp2_vl_x13-41611.iso
 
     # floppy
     curl -LO https://computernewb.com/isos/driver/xp_q35_x86.img
-    curl -LO https://computernewb.com/isos/driver/xp_q35_x64.img
+    # curl -LO https://computernewb.com/isos/driver/xp_q35_x64.img
 
     # virtio iso
     curl -LO https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso
@@ -76,7 +78,16 @@ Create the disk image
 
     qemu-img create -f qcow2 k150.qcow2 5G
 
+    qemu-img create -f qcow2 c.qcow2 5G
+
 Launch once to start the install
+
+    qemu-system-i386 \
+        -enable-kvm \
+        -m 512 \
+        -hda c.qcow2 \
+        -cdrom fr_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-73982.iso \
+        -boot d
 
     qemu-system-i386 \
         -M q35,usb=on,acpi=on,hpet=off \
@@ -89,39 +100,54 @@ Launch once to start the install
         -device usb-tablet \
         -device VGA,vgamem_mb=64 \
         -nic user,model=virtio \
-        -monitor stdio \
+        -device qemu-xhci \
+        -device usb-host,vendorid=0x067b,productid=0x2303 \
+        \
         -cdrom fr_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-73982.iso \
         -boot d
 
+To proceed with the install
+
+- Get the focus, and press F6 before it disappears
+- When speaking of additional peripherals
+  - press S, select a device, press enter
+  - press S, select the other device, press enter
+  - verify that the two devices are listed
+  - press enter to validate devices
+- press enter to install
+- press F8 to accept
+- press enter to install
+- select NTFS fast and enter
+- after the first reboot
+  - click yes to install unsigned driver (once for each driver)
+  - enter the key MRX3F 47B9T 2487J KWKMF RPWBY
+  - finish the install as usual
+- after the second reboot
+  - create a desktop shortcut to `cmd.exe`
+  - create a desktop shortcur to `devmgmt.msc`
+- launch device management shortcut
+  - right click ethernet controler
+  - update driver
+  - no
+  - specific location
+  - list or location (advanced)
+  - these locations (check removables)
+
+Finally once booted, create some useful shortcuts on the desktop :
+
+    devmgmt.msc
+    cmd.exe
 
 
+Poweroff the VM, and start it again with networking to load drivers
 
-    qemu-system-x86_64 -hda c.qcow -cdrom  fr_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-73982.iso -boot d -m 512 -enable-kvm -vnc :0
-
-    # launch vnc client and connect to VM IP using port 5900 (for display `:0`) and proceed
-
-Launch a second time to finish the install
-
-    qemu-system-x86_64 -hda c.qcow -cdrom  fr_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-73982.iso -boot d -m 512 -enable-kvm -vnc :0
-
-    # get the key from https://archive.org/details/WinXPProSP3x86 :
-    # - MRX3F
-    # - 47B9T
-    # - 2487J
-    # - KWKMF
-    # - RPWBY
-    # finish the install then power off
-
-Restart the VM with networking to make persistant modifications
-
-    qemu-system-x86_64 -hda c.qcow -m 512 -enable-kvm -vnc :0 \
+    qemu-system-i386 \
+        -enable-kvm \
+        -m 512 \
+        -hda c.qcow2 \
         -nic user,model=virtio \
-        -drive if=floppy,file=xp_q35_x86.img,format=raw \
-        -device VGA,vgamem_mb=64 \
         -cdrom virtio-win.iso
 
-    # create a desktop shortcut to `devmgmt.msc`
-    # create a desktop shortcut to `cmd.exe`
 
     # NETWORKING
     # open device manager (win+r / cmd.exe / devmgmt.msc)
@@ -129,18 +155,85 @@ Restart the VM with networking to make persistant modifications
     # do not search on windows update, specific location, cd-rom
     # accept the version of the driver found in the **xp** folder
 
+    # launch internet explorer
+    # 
+    # 
+    # 
+    # 
+    # 
+    # 
+
+
     # VGA
     # ignore the missing driver
 
 
+Download and install 
+
+
 Now setup USB
 
-    qemu-system-x86_64 -hda c.qcow -m 512 -enable-kvm -vnc :0 \
+    qemu-system-i386 \
+        -enable-kvm \
+        -m 512 \
+        -hda c.qcow2 \
         -nic user,model=virtio \
-        -drive if=floppy,file=xp_q35_x86.img,format=raw \
-        -device VGA,vgamem_mb=64 \
         -cdrom virtio-win.iso \
+        -usb \
+        -device usb-ehci,id=ehci
+
+
+Then poweroff and reboot once again with the final USB device to share
+
+    lsusb | grep PL2303
+    Bus 002 Device 005: ID 067b:2303 Prolific Technology, Inc. PL2303 Serial Port / Mobile Phone Data Cable
+
+    qemu-system-i386 \
+        -enable-kvm \
+        -m 512 \
+        -hda c.qcow2 \
+        -nic user,model=virtio \
+        -cdrom virtio-win.iso \
+        -usb \
+        -device usb-ehci,id=ehci \
+        -device usb-host,bus=ehci.0,vendorid=0x067b,productid=0x2303
+
+        -device usb-host,hostbus=2,hostport=5
+        -device usb-host,bus=usb-bus.0,hostbus=2,hostport=5
+        -device usb-host,bus=ehci.0,hostbus=2,hostport=5
+
+        -device usb-host,vendorid=0x067b,productid=0x2303
+        -device usb-host,bus=usb-bus.0,vendorid=0x067b,productid=0x2303
+
+
+Press CTRL+ALT+2 (with SHIFT on french keyboard) to enter QEMU console
+
+B
+    qemu) info usbhost
+B
+      Bus 2, Addr 5, Port 1.1, Speed 12 Mb/s
+        Class 00: USB device 067b:2303
+      Bus 1, Addr 5, Port 1.4.2, Speed 12 Mb/s
+        Class 00: USB device 045e:0823
+      Bus 1, Addr 4, Port 1.4.1, Speed 1.5 Mb/s
+        Class 00: USB device 046a:0113
+
+Press CTRL+ALT+1 (with SHIFT on french keyboad) to return to the guest
+
+pcap=mouse.pcap
+
         -snapshot \
+        -device qemu-xhci \
+
+
+
+        -device usb-host,vendorid=0x067b,productid=0x2303
+        -device usb-host,hostbus=2,hostport=4
+
+
+
+
+
         -device qemu-xhci \
         -device usb-host,vendorid=0x067b,productid=0x2303
 
