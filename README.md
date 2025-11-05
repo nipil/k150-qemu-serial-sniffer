@@ -138,6 +138,9 @@ From the guest
 On your host
 
     # ctrl-C of python http.server
+
+Then load the usb monitor driver
+
     sudo modprobe usbmon
 
 USB monitor devices number mean the following
@@ -171,3 +174,7 @@ Finally from the host
 - save capture as `.pcapng` file
 
 And analyze it !
+
+If you want to do a text capture, you can instead
+
+    sudo tcpdump -qAXni usbmon2 -s 0
